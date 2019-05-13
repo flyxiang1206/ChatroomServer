@@ -252,6 +252,8 @@ namespace ChatroomServer
         {
             try
             {
+                Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "]" + "inLogin");
+
                 ServerMain.uIdMax++;
                 clsLogin data = new clsLogin(0,"");
                 data = data.FromBytes(package.data);

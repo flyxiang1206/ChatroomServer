@@ -11,13 +11,13 @@ namespace ChatroomServer
         {
             AutoReset = true,
             Enabled = true,
-            Interval = 250
+            Interval = 10
         };
         public static Timer TimerSendToClient = new Timer()
         {
             AutoReset = true,
             Enabled = true,
-            Interval = 50
+            Interval = 10
         };
         
         public static MyQueue<Message> oldMessage = new MyQueue<Message>(10);
@@ -39,6 +39,10 @@ namespace ChatroomServer
             TimerPackage.Elapsed += new ElapsedEventHandler(server.ServerHandleMessage);
             TimerPackage.Elapsed += new ElapsedEventHandler(server.ClientConnection);
             TimerPackage.Start();
+
+            TimerSendToClient.Elapsed += new ElapsedEventHandler(server.SendToClient);
+            TimerSendToClient.Elapsed += new ElapsedEventHandler(server.SendToAllClient);
+            TimerSendToClient.Start();
 
             while (true) ;
         }
