@@ -123,7 +123,24 @@ namespace ChatroomServer
                         }
                         if (status == NetConnectionStatus.Disconnected)
                         {
+                            uint id = 0;
+                            foreach (uint uid in ServerMain.allUser.Keys)
+                            {
+                                if (ServerMain.allUser[uid].connection == client)
+                                {
+                                    id = uid;
+                                }
+                            }
+                            if (id != 0)
+                            {
+                                clsChangeUser changeUser = new clsChangeUser(id, ServerMain.allUser[id].name);
+                                Package packageUser = new Package((uint)Protocol.KILLUSER, changeUser.ToBytes());
+                                ServerMain.toAllClient.Enqueue(packageUser);
 
+                                ServerMain.allConnections.Remove(ServerMain.allUser[id].connection);
+                                ServerMain.allUser.Remove(id);
+
+                            }
                         }
                         Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "]" + "Peer:" + im.SenderConnection.Peer.ToString());
 
@@ -192,12 +209,12 @@ namespace ChatroomServer
                 }
 
                 NetOutgoingMessage om = server.CreateMessage();
-                
+
                 foreach (byte d in da)
                 {
                     om.Write(d);
                 }
-                server.SendMessage(om,ServerMain.allConnections, NetDeliveryMethod.ReliableOrdered, 0);
+                server.SendMessage(om, ServerMain.allConnections, NetDeliveryMethod.ReliableOrdered, 0);
                 server.FlushSendQueue();
             }
             catch (Exception er)
@@ -228,13 +245,16 @@ namespace ChatroomServer
                 {
                     da.AddRange(BitConverter.GetBytes(0));
                 }
-                
+
                 NetOutgoingMessage om = server.CreateMessage();
                 foreach (byte d in da)
                 {
                     om.Write(d);
                 }
-                server.SendMessage(om, data.user, NetDeliveryMethod.ReliableOrdered, 0);
+                if (data.users.Count == 0)
+                    server.SendMessage(om, data.user, NetDeliveryMethod.ReliableOrdered, 0);
+                else
+                    server.SendMessage(om, data.users, NetDeliveryMethod.ReliableOrdered, 0);
                 server.FlushSendQueue();
             }
             catch (Exception er)
@@ -255,16 +275,27 @@ namespace ChatroomServer
                 Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "]" + "inLogin");
 
                 ServerMain.uIdMax++;
-                clsLogin data = new clsLogin(0,"");
+                clsLogin data = new clsLogin(0, "");
                 data = data.FromBytes(package.data);
-                User user = new User(ServerMain.uIdMax, data.userName,package.user);
+                User user = new User(ServerMain.uIdMax, data.userName, package.user);
 
                 ServerMain.allConnections.Add(package.user);
-                ServerMain.allUser.Add(user.uid,user);
+                ServerMain.allUser.Add(user.uid, user);
 
                 data.uid = user.uid;
                 package.data = data.ToBytes();
                 ServerMain.toClient.Enqueue(package);
+
+                clsChangeUser changeUser = new clsChangeUser(user.uid, user.name);
+                Package packageUser = new Package((uint)Protocol.ADDUSER, changeUser.ToBytes());
+                ServerMain.toAllClient.Enqueue(packageUser);
+
+                foreach (uint uid in ServerMain.allUser.Keys)
+                {
+                    clsChangeUser aa = new clsChangeUser(ServerMain.allUser[uid].uid, ServerMain.allUser[uid]..name);
+                    Package dd = new Package((uint)Protocol.ADDUSER, aa.ToBytes(),package.user);
+                    ServerMain.toClient.Enqueue(dd);
+                }
             }
             catch (Exception e)
             {
@@ -276,6 +307,12 @@ namespace ChatroomServer
         {
             try
             {
+                clsSend send = new clsSend();
+                System.DateTime time = DateTime.Now;
+                send = send.FromBytes(package.data);
+                send.message.hour = time.Hour;
+                send.message.min = time.Minute;
+                package.data = send.ToBytes();
                 ServerMain.toAllClient.Enqueue(package);
             }
             catch (Exception e)
@@ -288,6 +325,19 @@ namespace ChatroomServer
         {
             try
             {
+                clsSecret secret = new clsSecret();
+                System.DateTime time = DateTime.Now;
+                secret = secret.FromBytes(package.data);
+                secret.message.hour = time.Hour;
+                secret.message.min = time.Minute;
+                package.data = secret.ToBytes();
+
+                if (ServerMain.allUser.ContainsKey(secret.forUid))
+                {
+                    package.users.Add(ServerMain.allUser[secret.forUid].connection);
+                }
+
+                package.users.Add(package.user);
                 ServerMain.toClient.Enqueue(package);
             }
             catch (Exception e)

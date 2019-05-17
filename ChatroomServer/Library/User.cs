@@ -10,6 +10,12 @@ namespace ChatroomServer
         public string name { get; set; }
         public NetConnection connection { get; set; }
 
+        public User()
+        {
+            uid = 0;
+            name = "";
+            connection = null;
+        }
         public User(uint uid, string name, NetConnection connection)
         {
             this.uid = uid;

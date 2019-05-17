@@ -66,6 +66,13 @@ namespace ChatroomServer
         private int userNameRange { get; set; }
         private int messageRange { get; set; }
 
+        public clsSend()
+        {
+            message = new Message();
+            userNameRange = 0;
+            messageRange = 0;
+        }
+
         public clsSend(Message message)
         {
             this.message = message;
@@ -78,6 +85,8 @@ namespace ChatroomServer
             List<byte> result = new List<byte>();
             try
             {
+                result.AddRange(BitConverter.GetBytes(message.hour));
+                result.AddRange(BitConverter.GetBytes(message.min));
                 result.AddRange(BitConverter.GetBytes(message.user.uid));
                 result.AddRange(BitConverter.GetBytes(userNameRange));
                 result.AddRange(Encoding.UTF8.GetBytes(message.user.name));
@@ -103,11 +112,13 @@ namespace ChatroomServer
                 }
                 List<byte> list = bytes.ToList();
 
-                result.message.user.uid = BitConverter.ToUInt32(list.GetRange(0, 4).ToArray(), 0);
-                result.userNameRange = BitConverter.ToInt32(list.GetRange(4, 4).ToArray(), 0);
-                result.message.user.name = Encoding.UTF8.GetString(list.GetRange(8, result.userNameRange).ToArray());
-                result.messageRange = BitConverter.ToInt32(list.GetRange(8 + result.userNameRange, 4).ToArray(), 0);
-                result.message.message = Encoding.UTF8.GetString(list.GetRange(12 + result.userNameRange, result.messageRange).ToArray());
+                result.message.hour = BitConverter.ToInt32(list.GetRange(0, 4).ToArray(), 0);
+                result.message.min = BitConverter.ToInt32(list.GetRange(4, 4).ToArray(), 0);
+                result.message.user.uid = BitConverter.ToUInt32(list.GetRange(8, 4).ToArray(), 0);
+                result.userNameRange = BitConverter.ToInt32(list.GetRange(12, 4).ToArray(), 0);
+                result.message.user.name = Encoding.UTF8.GetString(list.GetRange(16, result.userNameRange).ToArray());
+                result.messageRange = BitConverter.ToInt32(list.GetRange(16 + result.userNameRange, 4).ToArray(), 0);
+                result.message.message = Encoding.UTF8.GetString(list.GetRange(20 + result.userNameRange, result.messageRange).ToArray());
             }
             catch (Exception e)
             {
@@ -126,6 +137,14 @@ namespace ChatroomServer
         private int userNameRange { get; set; }
         private int messageRange { get; set; }
 
+        public clsSecret()
+        {
+            message = new Message();
+            forUid = 0;
+            userNameRange = 0;
+            messageRange = 0;
+        }
+
         public clsSecret(Message message, uint forUid)
         {
             this.message = message;
@@ -139,6 +158,8 @@ namespace ChatroomServer
             List<byte> result = new List<byte>();
             try
             {
+                result.AddRange(BitConverter.GetBytes(message.hour));
+                result.AddRange(BitConverter.GetBytes(message.min));
                 result.AddRange(BitConverter.GetBytes(message.user.uid));
                 result.AddRange(BitConverter.GetBytes(forUid));
                 result.AddRange(BitConverter.GetBytes(userNameRange));
@@ -165,12 +186,68 @@ namespace ChatroomServer
                 }
                 List<byte> list = bytes.ToList();
 
-                result.message.user.uid = BitConverter.ToUInt32(list.GetRange(0, 4).ToArray(), 0);
-                result.forUid = BitConverter.ToUInt32(list.GetRange(4, 4).ToArray(), 0);
-                result.userNameRange = BitConverter.ToInt32(list.GetRange(8, 4).ToArray(), 0);
-                result.message.user.name = Encoding.UTF8.GetString(list.GetRange(12, result.userNameRange).ToArray());
-                result.messageRange = BitConverter.ToInt32(list.GetRange(12 + result.userNameRange, 4).ToArray(), 0);
-                result.message.message = Encoding.UTF8.GetString(list.GetRange(16 + result.userNameRange, result.messageRange).ToArray());
+                result.message.hour = BitConverter.ToInt32(list.GetRange(0, 4).ToArray(), 0);
+                result.message.min = BitConverter.ToInt32(list.GetRange(4, 4).ToArray(), 0);
+                result.message.user.uid = BitConverter.ToUInt32(list.GetRange(8, 4).ToArray(), 0);
+                result.forUid = BitConverter.ToUInt32(list.GetRange(12, 4).ToArray(), 0);
+                result.userNameRange = BitConverter.ToInt32(list.GetRange(16, 4).ToArray(), 0);
+                result.message.user.name = Encoding.UTF8.GetString(list.GetRange(20, result.userNameRange).ToArray());
+                result.messageRange = BitConverter.ToInt32(list.GetRange(20 + result.userNameRange, 4).ToArray(), 0);
+                result.message.message = Encoding.UTF8.GetString(list.GetRange(24 + result.userNameRange, result.messageRange).ToArray());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
+            return result;
+        }
+    }
+
+    public class clsChangeUser : IBasicData<clsChangeUser>
+    {
+        public uint uid { get; set; }
+        private int userNameRange { get; set; }
+        public string userName { get; set; }
+
+        public clsChangeUser(uint uid, string userName)
+        {
+            this.uid = uid;
+            this.userName = userName;
+            userNameRange = Encoding.UTF8.GetBytes(userName).Length;
+        }
+
+        public byte[] ToBytes()
+        {
+            List<byte> result = new List<byte>();
+            try
+            {
+                result.AddRange(BitConverter.GetBytes(uid));
+                result.AddRange(BitConverter.GetBytes(userNameRange));
+                result.AddRange(Encoding.UTF8.GetBytes(userName));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+            return result.ToArray();
+        }
+
+        public clsChangeUser FromBytes(byte[] bytes)
+        {
+            clsChangeUser result = new clsChangeUser(0, "");
+
+            try
+            {
+                if (bytes.Count() == 0)
+                {
+                    throw new Exception("Wrong Length");
+                }
+                List<byte> list = bytes.ToList();
+
+                result.uid = BitConverter.ToUInt32(list.GetRange(0, 4).ToArray(), 0);
+                result.userNameRange = BitConverter.ToInt32(list.GetRange(4, 4).ToArray(), 0);
+                result.userName = Encoding.UTF8.GetString(list.GetRange(8, result.userNameRange).ToArray());
             }
             catch (Exception e)
             {
