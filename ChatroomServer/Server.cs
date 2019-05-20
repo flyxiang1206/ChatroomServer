@@ -214,6 +214,8 @@ namespace ChatroomServer
                 {
                     om.Write(d);
                 }
+                if (ServerMain.allConnections.Count == 0) return;
+
                 server.SendMessage(om, ServerMain.allConnections, NetDeliveryMethod.ReliableOrdered, 0);
                 server.FlushSendQueue();
             }
@@ -290,11 +292,18 @@ namespace ChatroomServer
                 Package packageUser = new Package((uint)Protocol.ADDUSER, changeUser.ToBytes());
                 ServerMain.toAllClient.Enqueue(packageUser);
 
-                foreach (uint uid in ServerMain.allUser.Keys)
+                foreach (uint uid in ServerMain.allUser.Keys) 
                 {
-                    clsChangeUser aa = new clsChangeUser(ServerMain.allUser[uid].uid, ServerMain.allUser[uid]..name);
-                    Package dd = new Package((uint)Protocol.ADDUSER, aa.ToBytes(),package.user);
-                    ServerMain.toClient.Enqueue(dd);
+                    clsChangeUser getUser = new clsChangeUser(ServerMain.allUser[uid].uid, ServerMain.allUser[uid].name);
+                    Package packageGetUser = new Package((uint)Protocol.ADDUSER, getUser.ToBytes(), package.user);
+                    ServerMain.toClient.Enqueue(packageGetUser);
+                }
+
+                foreach (Message message in ServerMain.oldMessage)
+                {
+                    clsSend send = new clsSend(message);
+                    Package packageSend = new Package((uint)Protocol.SEND, send.ToBytes(),package.user);
+                    ServerMain.toClient.Enqueue(packageSend);
                 }
             }
             catch (Exception e)
@@ -314,6 +323,7 @@ namespace ChatroomServer
                 send.message.min = time.Minute;
                 package.data = send.ToBytes();
                 ServerMain.toAllClient.Enqueue(package);
+                ServerMain.oldMessage.Enqueue(send.message);
             }
             catch (Exception e)
             {
